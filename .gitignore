@@ -31,3 +31,4 @@ wolfsentry/wolfsentry_options.h
 
 /doc/html
 /doc/pdf
+/xdp/vmlinux.h

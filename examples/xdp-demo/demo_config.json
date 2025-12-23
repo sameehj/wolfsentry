@@ -1,0 +1,25 @@
+{
+    "wolfsentry-config-version": 1,
+  
+    "events": [
+      {
+        "label": "blocked-network",
+        "priority": 1
+      }
+    ],
+  
+    "routes": [
+      {
+        "parent-event": "blocked-network",
+        "family": "inet",
+        "direction-in": true,
+        "penalty-boxed": true,
+        "remote": {
+          "address": "10.99.99.99",
+          "prefix-bits": 32
+        },
+        "protocol": "ip"
+      }
+    ]
+  }
+  

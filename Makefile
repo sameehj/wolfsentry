@@ -190,6 +190,12 @@ VISIBILITY_CFLAGS := -fvisibility=hidden -DHAVE_VISIBILITY=1
 DYNAMIC_CFLAGS := -fpic
 DYNAMIC_LDFLAGS := -shared
 
+ifdef HAVE_XDP
+    CFLAGS += -DWOLFSENTRY_HAVE_XDP
+    LDFLAGS += -lbpf -lelf -lz
+    SRCS += wolfsentry_xdp.c
+endif
+
 ifdef NO_STDIO_STREAMS
     CFLAGS += -DWOLFSENTRY_NO_STDIO_STREAMS
 endif
@@ -262,21 +268,11 @@ ifdef FUNCTION_SECTIONS
     LDFLAGS += -Wl,--gc-sections
 endif
 
-.PHONY: all
-
 LIB_NAME := libwolfsentry.a
 
 INSTALL_LIBS := $(BUILD_TOP)/$(LIB_NAME)
 
-INSTALL_HEADERS := wolfsentry/wolfsentry.h wolfsentry/wolfsentry_settings.h wolfsentry/wolfsentry_errcodes.h wolfsentry/wolfsentry_af.h wolfsentry/wolfsentry_util.h wolfsentry/wolfsentry_json.h wolfsentry/centijson_sax.h wolfsentry/centijson_dom.h wolfsentry/centijson_value.h wolfsentry/wolfssl_test.h
-
-ifdef USER_SETTINGS_FILE
-    OPTIONS_FILE := $(USER_SETTINGS_FILE)
-else
-    OPTIONS_FILE := $(BUILD_TOP)/wolfsentry/wolfsentry_options.h
-    INSTALL_HEADERS += $(OPTIONS_FILE)
-endif
-
+.PHONY: all
 all: $(BUILD_TOP)/$(LIB_NAME)
 
 ifeq "$(AR_IS_GNU_AR)" "1"
@@ -289,11 +285,34 @@ DYNLIB_NAME := libwolfsentry.so
 
 ifdef BUILD_DYNAMIC
 INSTALL_LIBS += $(BUILD_TOP)/$(DYNLIB_NAME)
+
+INSTALL_HEADERS := wolfsentry/wolfsentry.h wolfsentry/wolfsentry_settings.h wolfsentry/wolfsentry_errcodes.h wolfsentry/wolfsentry_af.h wolfsentry/wolfsentry_util.h wolfsentry/wolfsentry_json.h wolfsentry/centijson_sax.h wolfsentry/centijson_dom.h wolfsentry/centijson_value.h wolfsentry/wolfssl_test.h wolfsentry/wolfsentry_xdp.h
+
+ifdef USER_SETTINGS_FILE
+    OPTIONS_FILE := $(USER_SETTINGS_FILE)
+else
+    OPTIONS_FILE := $(BUILD_TOP)/wolfsentry/wolfsentry_options.h
+    INSTALL_HEADERS += $(OPTIONS_FILE)
+endif
+
 all: $(BUILD_TOP)/$(DYNLIB_NAME)
 endif
 
 #https://stackoverflow.com/questions/3236145/force-gnu-make-to-rebuild-objects-affected-by-compiler-definition/3237349#3237349
 BUILD_PARAMS := (echo 'CC_V:'; echo '$(CC_V)'; echo 'SRC_TOP: $(SRC_TOP)'; echo 'CFLAGS: $(CFLAGS) $(VISIBILITY_CFLAGS)'; echo 'LDFLAGS: $(LDFLAGS)'; echo 'AS_VERSION:'; echo '$(AS_VERSION)'; echo 'LD_VERSION:'; echo '$(LD_VERSION)'; echo 'AR_VERSION:'; echo '$(AR_VERSION)'; echo 'ARFLAGS: $(AR_FLAGS)')
+
+.PHONY: xdp xdp-clean xdp-demo clean-xdp
+
+xdp:
+	$(MAKE) -C xdp
+
+xdp-clean:
+	$(MAKE) -C xdp clean
+
+clean-xdp: xdp-clean
+
+xdp-demo: xdp
+	$(MAKE) -C examples/xdp-demo
 
 .PHONY: force
 $(BUILD_TOP)/.build_params: force

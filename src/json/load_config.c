@@ -26,10 +26,20 @@
 #define WOLFSENTRY_SOURCE_ID WOLFSENTRY_SOURCE_ID_JSON_LOAD_CONFIG_C
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #define MAX_IPV4_ADDR_BITS (sizeof(struct in_addr) * BITS_PER_BYTE)
 #define MAX_IPV6_ADDR_BITS (sizeof(struct in6_addr) * BITS_PER_BYTE)
 #define MAX_MAC_ADDR_BITS 64
+
+static int json_debug_enabled(void) {
+    static int cached = -1;
+    if (cached == -1) {
+        const char *env = getenv("WOLFSENTRY_JSON_DEBUG");
+        cached = (env && env[0] && env[0] != '0') ? 1 : 0;
+    }
+    return cached;
+}
 
 #ifdef WOLFSENTRY_LWIP
 #include "lwip/sockets.h"
@@ -1686,11 +1696,29 @@ static wolfsentry_errcode_t json_process(
 
     if (ret < 0) {
         reset_o_u_c(jps);
-        if (WOLFSENTRY_ERROR_CODE_IS(ret, CONFIG_INVALID_KEY))
+        if (WOLFSENTRY_ERROR_CODE_IS(ret, CONFIG_INVALID_KEY)) {
+            if (json_debug_enabled()) {
+                fprintf(stderr,
+                        "wolfsentry: invalid key \"%s\" at line %u, col %u (depth=%d, table=%d)\n",
+                        jps->cur_keyname,
+                        jps->key_pos.line_number,
+                        jps->key_pos.column_number,
+                        jps->cur_depth,
+                        jps->table_under_construction);
+            }
             memcpy(&jps->parser.err_pos, &jps->key_pos, sizeof(JSON_INPUT_POS));
-        else if (WOLFSENTRY_ERROR_CODE_IS(ret, CONFIG_INVALID_VALUE))
+        } else if (WOLFSENTRY_ERROR_CODE_IS(ret, CONFIG_INVALID_VALUE)) {
+            if (json_debug_enabled()) {
+                fprintf(stderr,
+                        "wolfsentry: invalid value for key \"%s\" at line %u, col %u (depth=%d, table=%d)\n",
+                        jps->cur_keyname,
+                        jps->parser.value_pos.line_number,
+                        jps->parser.value_pos.column_number,
+                        jps->cur_depth,
+                        jps->table_under_construction);
+            }
             memcpy(&jps->parser.err_pos, &jps->parser.value_pos, sizeof(JSON_INPUT_POS));
-        else
+        } else
             memcpy(&jps->parser.err_pos, &jps->parser.pos, sizeof(JSON_INPUT_POS));
         WOLFSENTRY_ERROR_RERETURN(ret);
     } else

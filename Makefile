@@ -311,7 +311,7 @@ xdp-clean:
 
 clean-xdp: xdp-clean
 
-xdp-demo: xdp
+xdp-demo: xdp $(BUILD_TOP)/wolfsentry/wolfsentry_options.h
 	$(MAKE) -C examples/xdp-demo
 
 .PHONY: force
